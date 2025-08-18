@@ -1,0 +1,34 @@
+Query Ultravisor Information
+Initialize Ultravisor
+Create Secure Configuration
+Destroy Secure Configuration
+Create Secure CPU
+Destroy Secure CPU
+Convert to Secure Storage
+Convert from Secure Storage
+Set Shared Access
+Remove Shared Access
+Reserved
+Set Secure Parameters
+Destroy Secure Storage
+Unpack Image
+Verify Image
+Perform CPU Reset
+Perform Initial CPU Reset
+Set CPU State
+Prepare for Reset
+Perform CPU Clear Reset
+Unshare All
+Pin Shared Storage
+Unpin Shared Storage
+Destroy Secure Configuration Fast
+Initiate Configuration Dump
+Dump Configuration Storage State
+Dump CPU State
+Complete Configuration Dump
+Retrieve Attestation Measurement
+Add Secret
+List Secrets
+Lock Secrets
+Verify Large Frame
+Retrieve Secret

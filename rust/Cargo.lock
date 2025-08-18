@@ -653,6 +653,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "pvinfo"
+version = "0.1.0"
+dependencies = [
+ "clap",
+]
+
+[[package]]
 name = "pvsecret"
 version = "0.12.0"
 dependencies = [
