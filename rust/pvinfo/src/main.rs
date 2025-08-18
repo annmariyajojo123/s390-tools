@@ -1,11 +1,15 @@
 //! pvinfo tool implementation
 //!
 //! Usage:
+//!     pvinfo
 //!     pvinfo --se-status
+//!     pvinfo --facilities
 //!
 //! Requirements:
 //!   1) Verifies the UV directory is present.
 //!   2) Prints Secure Execution mode (Guest / Host / Neither / Error if both)
+//!   3) If no option specified the tool must show all available information
+//!   
 
 // Necessary Packages 
 use clap::Parser;
@@ -61,7 +65,9 @@ fn main() {
         Path::new(PVINFO_SRC),
     );
     any = true;
-}
+    }
+
+
   // Show everything in default
     if !any {
         show_everything();
@@ -136,9 +142,31 @@ fn print_facilities(mask: u64, desc_file: &Path) {
     // Each line = one bit (line 0 = highest bit, line 63 = lowest bit)
     for (line_index, line) in lines.iter().enumerate() {
         let bit_position = 63 - line_index;
+
         if (mask & (1u64 << bit_position)) != 0 {
-            println!("{}", line);
+            // Special case: bit 10 → always say reserved
+            if bit_position == 10 {
+                println!("Reserved (Bit-10)");
+            }
+            // If line itself is marked reserved → print with bit number
+            else if line.contains("Reserved") {
+                println!("{} (Bit-{})", line, bit_position);
+            }
+            // Normal case → just print description
+            else {
+                println!("{}", line);
+            }
             found = true;
+        }
+    }
+
+    // Handle extra case: if any bits above 33 are set but no description line exists
+    for bit_position in (34..64).rev() {
+        if (mask & (1u64 << bit_position)) != 0 {
+            if (63 - bit_position) >= lines.len() {
+                println!("Bit-{} is active", bit_position);
+                found = true;
+            }
         }
     }
 
@@ -146,6 +174,7 @@ fn print_facilities(mask: u64, desc_file: &Path) {
         println!("(no active facilities)");
     }
 }
+
 
 /// Top-level handler for facilities
 pub fn handle_facilities(query_dir: &Path, src_dir: &Path) {
