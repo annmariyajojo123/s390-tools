@@ -62,12 +62,12 @@ fn main() {
     );
     any = true;
 }
-
-    // If no flags at all → show usage hint
+  // Show everything in default
     if !any {
-        eprintln!("Hint: run with --se-status or --facilities");
+        show_everything();
     }
 }
+
 
 
 // Function to check if the UV directory exists
@@ -153,9 +153,20 @@ pub fn handle_facilities(query_dir: &Path, src_dir: &Path) {
 
     match read_facilities_mask(query_dir) {
         Some(mask) if mask != 0 => {
-            println!("Facilities (enabled):");
             print_facilities(mask, &desc_path);
         }
         _ => println!("No facilities found or file empty."),
     }
+}
+
+
+fn show_everything() {
+    println!("--- Secure Execution Status ----");
+    determine_se_mode(Path::new(UV_FOLDER));
+
+    println!("\n---- Facilities ----");
+    handle_facilities(
+        &Path::new(UV_FOLDER).join("query"),
+        Path::new(PVINFO_SRC),
+    );
 }
