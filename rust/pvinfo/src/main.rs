@@ -4,6 +4,7 @@
 //!     pvinfo
 //!     pvinfo --se-status
 //!     pvinfo --facilities
+//!     pvinfo --feature-indications
 //!
 //! Requirements:
 //!   1) Verifies the UV directory is present.
@@ -28,6 +29,9 @@ const UV_QUERY_DIR: &str = "/home/annmariyajojo/Documents/s390_tools_learning/s3
 const FACILITIES_FILE: &str = "facilities";               // Hex mask file
 const FACILITIES_DESC_FILE: &str = "facilities_value.txt"; // Descriptions
 
+// Path for feature-indication
+const FEATURE_BITS_FILE: &str = "feature_indications";                 
+const FEATURE_TEXT_FILE: &str = "feature_indications_value.txt";       
 
 /// Simple CLI for pvinfo
 #[derive(Parser, Debug)]
@@ -41,10 +45,12 @@ struct Cli {
     #[arg(long)]
     facilities: bool,
 
+    /// Show Ultravisor feature indications
+    #[arg(long)]
+    feature_indications: bool,
 }
 
 fn main() {
-
 
     let args = Cli::parse();
 
@@ -67,14 +73,19 @@ fn main() {
     any = true;
     }
 
+    if args.feature_indications {
+    handle_feature_indications(
+    &Path::new(UV_FOLDER).join("query"),
+    Path::new(PVINFO_SRC),
+    );
+    any = true;
+    }
 
   // Show everything in default
     if !any {
         show_everything();
     }
 }
-
-
 
 // Function to check if the UV directory exists
 fn verify_uv_folder() {
@@ -96,7 +107,10 @@ fn read_flag_file(path: &Path) -> bool {
 
 /*==================== SE status ====================*/
 
-// Read flags and decide Secure Execution Mode
+/// CLI: `pvinfo --se-status`
+///
+/// Reads the SE guest/host flags and prints the Secure Execution mode:
+/// - Guest / Host / Neither / Error if both
 fn determine_se_mode(base_dir: &Path) {
     let guest_flag = read_flag_file(&base_dir.join("prot_virt_guest"));
     let host_flag = read_flag_file(&base_dir.join("prot_virt_host"));
@@ -110,92 +124,138 @@ fn determine_se_mode(base_dir: &Path) {
 }
 
 
-/*==================== Facilities ====================*/
-
-
-/// Read facilities hex mask from uv/query/facilities
-fn read_facilities_mask(query_dir: &Path) -> Option<u64> {
-    let path = query_dir.join(FACILITIES_FILE);
-
-    // Read file into a string
-    let content = fs::read_to_string(&path).ok()?;
+/// Shared hex mask reader
+fn read_hex_mask(path: &Path) -> Option<u64> {
+    let content = fs::read_to_string(path).ok()?;
     let first_line = content.lines().find(|l| !l.trim().is_empty())?.trim();
-
-    // Remove optional "0x" prefix
     let hex_str = first_line.trim_start_matches("0x");
-
-    // Parse as u64 (hexadecimal)
     u64::from_str_radix(hex_str, 16).ok()
 }
 
-/// Print active facilities based on the mask
-fn print_facilities(mask: u64, desc_file: &Path) {
-    // Read descriptions (each line corresponds to a bit)
-    let content = fs::read_to_string(desc_file).unwrap_or_else(|_| {
-        eprintln!("Could not read {}", desc_file.display());
-        return String::new();
-    });
+/*==================== Shared Bitmask Printer ====================*/
 
+fn render_mask_bits(mask: u64, desc_file: &Path, reserved_bits: &[usize]) {
+    let content = fs::read_to_string(desc_file).unwrap_or_default();
     let lines: Vec<&str> = content.lines().collect();
-    let mut found = false;
+    let mut any = false;
 
-    // Each line = one bit (line 0 = highest bit, line 63 = lowest bit)
+    // Each line corresponds to a bit (line 0 = Bit 63, line 63 = Bit 0)
     for (line_index, line) in lines.iter().enumerate() {
         let bit_position = 63 - line_index;
 
         if (mask & (1u64 << bit_position)) != 0 {
-            // Special case: bit 10 → always say reserved
-            if bit_position == 10 {
-                println!("Reserved (Bit-10)");
-            }
-            // If line itself is marked reserved → print with bit number
-            else if line.contains("Reserved") {
-                println!("{} (Bit-{})", line, bit_position);
-            }
-            // Normal case → just print description
-            else {
+            if reserved_bits.contains(&line_index) {
+                println!("Confidential - report as reserved Bit-{}", line_index);
+            } else if line.contains("Reserved") {
+                println!("{} Bit-{}", line, line_index);
+            } else {
                 println!("{}", line);
             }
-            found = true;
+            any = true;
         }
     }
 
-    // Handle extra case: if any bits above 33 are set but no description line exists
-    for bit_position in (34..64).rev() {
+    // Handle bits beyond description file
+    for extra_line in lines.len()..64 {
+        let bit_position = 63 - extra_line;
         if (mask & (1u64 << bit_position)) != 0 {
-            if (63 - bit_position) >= lines.len() {
-                println!("Bit-{} is active", bit_position);
-                found = true;
-            }
+            println!("Bit-{} is active", extra_line);
+            any = true;
         }
     }
 
-    if !found {
-        println!("(no active facilities)");
+    if !any {
+        println!("(no active entries)");
     }
 }
 
 
-/// Top-level handler for facilities
+/// General-purpose bitmask reader + renderer
+fn process_bitmask(
+    query_dir: &Path,
+    src_dir: &Path,
+    file_name: &str,
+    desc_file: &str,
+    reserved_bits: &[usize],
+    heading: &str,
+) {
+    let mask = match read_hex_mask(&query_dir.join(file_name)) {
+        Some(m) if m != 0 => m,
+        _ => {
+            println!("No {} found or file empty.", heading);
+            return;
+        }
+    };
+
+    println!("\n{}", heading);
+    render_mask_bits(mask, &src_dir.join(desc_file), reserved_bits);
+}
+
+
+/*==================== Facilities ====================*/
+
+/// CLI: `pvinfo --facilities`
+///
+/// Reads the `facilities` mask from `uv/query/facilities`
+/// and uses the description file `facilities_value.txt` to print
+/// active Ultravisor facilities.
+
 pub fn handle_facilities(query_dir: &Path, src_dir: &Path) {
-    let desc_path = src_dir.join(FACILITIES_DESC_FILE);
-
-    match read_facilities_mask(query_dir) {
-        Some(mask) if mask != 0 => {
-            print_facilities(mask, &desc_path);
-        }
-        _ => println!("No facilities found or file empty."),
-    }
+    process_bitmask(
+        query_dir,
+        src_dir,
+        FACILITIES_FILE,
+        FACILITIES_DESC_FILE,
+        &[10],
+        "Facilities: Installed Ultravisor Calls",
+    );
 }
 
+/*==================== Show Everything ====================*/
+
+/// CLI: `pvinfo` (no flags)
+///
+/// Runs all sections:
+/// - Secure Execution Status
+/// - Facilities
+/// - Feature Indications
 
 fn show_everything() {
-    println!("--- Secure Execution Status ----");
+    println!("Secure Execution Status: ");
     determine_se_mode(Path::new(UV_FOLDER));
 
-    println!("\n---- Facilities ----");
+    println!("\n Facilities: ");
     handle_facilities(
         &Path::new(UV_FOLDER).join("query"),
         Path::new(PVINFO_SRC),
     );
+
+    println!("\nFeature Indications: ");
+    handle_feature_indications(
+    &Path::new(UV_FOLDER).join("query"),
+    Path::new(PVINFO_SRC),
+    );
+
+
 }
+
+/*==================== Feature indications ====================*/
+
+/// CLI: `pvinfo --feature-indications`
+///
+/// Reads the `feature_indications` mask from `uv/query/feature_indications`
+/// and uses the description file `feature_indications_value.txt` to print
+/// Ultravisor features.  
+/// Bits `[0, 2, 3]` are confidential/reserved and printed specially.
+
+pub fn handle_feature_indications(query_dir: &Path, src_dir: &Path) {
+    process_bitmask(
+        query_dir,
+        src_dir,
+        FEATURE_BITS_FILE,
+        FEATURE_TEXT_FILE,
+        &[0, 2, 3],
+        "Feature Indications: Ultravisor Features",
+    );
+}
+

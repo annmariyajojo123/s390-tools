@@ -1,0 +1,6 @@
+Confidential - report as reserved
+Adapter interrupt virtualization supported
+Confidential - report as reserved
+Confidential - report as reserved
+AP passthrough supported
+AP interpretion passthrough supported
