@@ -13,7 +13,7 @@
 //!   
 
 // Necessary Packages 
-use clap::Parser;
+use clap::{Parser, CommandFactory};
 use std::fs;
 use std::path::Path;
 use std::process;
@@ -33,6 +33,10 @@ const FACILITIES_DESC_FILE: &str = "facilities_value.txt"; // Descriptions
 const FEATURE_BITS_FILE: &str = "feature_indications";                 
 const FEATURE_TEXT_FILE: &str = "feature_indications_value.txt";       
 
+// Path for supported plaintext add secret flags
+const SUPP_ADD_SECRET_PCF_FILE: &str = "supp_add_secret_pcf";
+
+
 /// Simple CLI for pvinfo
 #[derive(Parser, Debug)]
 #[command(author, version, about = "Protected Virtualization info")]
@@ -48,40 +52,56 @@ struct Cli {
     /// Show Ultravisor feature indications
     #[arg(long)]
     feature_indications: bool,
+
+    /// Show Supported Plaintext Add Secret Flags
+    #[arg(long)]
+    supported_plaintext_add_secret_flags: bool,
+
 }
 
 fn main() {
+    let raw_args: Vec<String> = std::env::args().collect();
+
+    // Special case: if user typed only "--", show help
+    if raw_args.len() == 2 && raw_args[1] == "--" {
+        Cli::command().print_help().unwrap();
+        std::process::exit(1);
+    }
 
     let args = Cli::parse();
 
-    // Check if uv folder exists or not 
     verify_uv_folder();
 
     let mut any = false;
 
-    // Run SE-status if requested
     if args.se_status {
         determine_se_mode(Path::new(UV_FOLDER));
         any = true;
     }
 
     if args.facilities {
-    handle_facilities(
-        &Path::new(UV_FOLDER).join("query"),
-        Path::new(PVINFO_SRC),
-    );
-    any = true;
+        handle_facilities(
+            &Path::new(UV_FOLDER).join("query"),
+            Path::new(PVINFO_SRC),
+        );
+        any = true;
     }
 
     if args.feature_indications {
-    handle_feature_indications(
-    &Path::new(UV_FOLDER).join("query"),
-    Path::new(PVINFO_SRC),
+        handle_feature_indications(
+            &Path::new(UV_FOLDER).join("query"),
+            Path::new(PVINFO_SRC),
+        );
+        any = true;
+    }
+
+    if args.supported_plaintext_add_secret_flags {
+    handle_supported_plaintext_add_secret_flags(
+        &Path::new(UV_FOLDER).join("query"),
     );
     any = true;
     }
 
-  // Show everything in default
     if !any {
         show_everything();
     }
@@ -187,6 +207,7 @@ fn process_bitmask(
         }
     };
 
+    // Always add a clean blank line before the heading
     println!("\n{}", heading);
     render_mask_bits(mask, &src_dir.join(desc_file), reserved_bits);
 }
@@ -221,21 +242,24 @@ pub fn handle_facilities(query_dir: &Path, src_dir: &Path) {
 /// - Feature Indications
 
 fn show_everything() {
-    println!("Secure Execution Status: ");
+    println!("Secure Execution Status:");
     determine_se_mode(Path::new(UV_FOLDER));
 
-    println!("\n Facilities: ");
+    
     handle_facilities(
         &Path::new(UV_FOLDER).join("query"),
         Path::new(PVINFO_SRC),
     );
 
-    println!("\nFeature Indications: ");
+    
     handle_feature_indications(
-    &Path::new(UV_FOLDER).join("query"),
-    Path::new(PVINFO_SRC),
+        &Path::new(UV_FOLDER).join("query"),
+        Path::new(PVINFO_SRC),
     );
 
+    handle_supported_plaintext_add_secret_flags(
+        &Path::new(UV_FOLDER).join("query"),
+    );
 
 }
 
@@ -258,4 +282,34 @@ pub fn handle_feature_indications(query_dir: &Path, src_dir: &Path) {
         "Feature Indications: Ultravisor Features",
     );
 }
+
+/*==================== Supported Plaintext Add Secret Flags ====================*/
+
+/// CLI: `pvinfo --supported-plaintext-add-secret-flags`
+///
+/// Reads the `supp_add_secret_pcf` mask from `uv/query/supp_add_secret_pcf`.
+/// If bit 0 is active → prints "Disable dumping".
+fn handle_supported_plaintext_add_secret_flags(query_dir: &Path) {
+    let file_path = query_dir.join(SUPP_ADD_SECRET_PCF_FILE);
+    let mask = match read_hex_mask(&file_path) {
+        Some(m) => m,
+        None => {
+            println!("Supported Plaintext Add Secret Flags file not found.");
+            return;
+        }
+    };
+
+    println!("\nSupported Plaintext Add Secret Flags:");
+    let mut any = false;
+
+    if (mask & (1u64 << 0)) != 0 {
+        println!("Disable dumping");
+        any = true;
+    }
+
+    if !any {
+        println!("no active flags");
+    }
+}
+
 
