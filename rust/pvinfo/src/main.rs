@@ -39,6 +39,10 @@ const SUPP_ADD_SECRET_PCF_FILE: &str = "supp_add_secret_pcf";
 // Path for supported add secret request versions
 const SUPP_ADD_SECRET_REQ_FILE: &str = "supp_add_secret_req_ver";
 
+//Path for Supported Attestation Request Version
+const SUPP_ATTEST_REQ_VER_FILE: &str = "supp_att_req_hdr_ver";
+
+
 
 /// Simple CLI for pvinfo
 #[derive(Parser, Debug)]
@@ -63,6 +67,11 @@ struct Cli {
     /// Show Supported Add Secret Request Versions
     #[arg(long)]
     supported_add_secret_request_versions: bool,
+
+    /// Show Supported Attestation Request Versions
+    #[arg(long)]
+    supported_attestation_request_versions: bool,
+
 
 
 }
@@ -116,6 +125,14 @@ fn main() {
     );
     any = true;
     }
+
+    if args.supported_attestation_request_versions {
+     handle_supported_attestation_request_versions(
+        &Path::new(UV_FOLDER).join("query"),
+    );
+    any = true;
+    }
+
 
 
     if !any {
@@ -281,6 +298,10 @@ fn show_everything() {
        &Path::new(UV_FOLDER).join("query"),
     );
 
+    handle_supported_attestation_request_versions(
+        &Path::new(UV_FOLDER).join("query"),
+    );
+
 
 }
 
@@ -380,4 +401,35 @@ fn extract_supported_versions(mask: u64) -> Vec<String> {
     supported
 }
 
+
+/*==================== Supported Attestation Request Versions ====================*/
+/// CLI: `pvinfo --supported-attestation-request-versions`
+///
+/// Reads the `supp_att_req_hdr_ver` mask from `uv/query/supp_att_req_hdr_ver`.
+/// Each set bit indicates a supported version: (bit_index + 1) * 0x100 in hex.
+fn handle_supported_attestation_request_versions(query_dir: &Path) {
+    let file_path = query_dir.join(SUPP_ATTEST_REQ_VER_FILE);
+    let mask = match read_hex_mask(&file_path) {
+        Some(m) => m,
+        None => {
+            println!("Supported Attestation Request Versions file not found.");
+            return;
+        }
+    };
+
+    println!("\nSupported Attestation Request Versions:");
+    let mut any = false;
+
+    for bit in 0..64 {
+        if (mask & (1u64 << bit)) != 0 {
+            let version = (bit + 1) * 0x100;
+            println!("Version {:x} hex is supported", version);
+            any = true;
+        }
+    }
+
+    if !any {
+        println!("no supported versions");
+    }
+}
 
