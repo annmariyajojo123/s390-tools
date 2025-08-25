@@ -1,0 +1,6 @@
+Reserved/Invalid
+An optional nonce is located in the attestation request 
+The 32-bytexSHA256 hash of the public host key corresponding to the private key used to unseal the SE header to start this secure configuration is added to the additional data area to be measured. 
+The 32-bytexSHA256 hash of the public host key corresponding to the private key used to unseal this Attestation request header to start this secure configuration is added to the additional data area to be measured. 
+Add-secret Request Stream Flag (ARSF) - a SHA512 hash of the the list of add-secret tags of the add secret requests of sucessful requests (in order of execution) followed by a byte indicating whether the store is locked.
+Firmware Components Flag (FWCF): the 320-byte measurement corresponding to attestation of firmware components is added to the additional data to be measured. 
