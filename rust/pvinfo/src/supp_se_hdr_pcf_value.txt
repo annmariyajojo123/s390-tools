@@ -1,0 +1,64 @@
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Dumping of the configuration is allowed
+The unpack image UVC does not decrypt the content of the specified 4K-byte block of storage. The page-list digest, the address-list digest, and the tweak-list digest are still verified.
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+Reserved
+PCKMO encrypt-DEA/TDEA-key functions allowed
+PCKMO encrypt-AES-key functions allowed
+PCKMO encrypt-ECC-key functions allowed
+Reserved
+Reserved
+Reserved
+Temporary backup-host-key use allowed
+Reserved

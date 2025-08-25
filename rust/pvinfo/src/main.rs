@@ -42,6 +42,11 @@ const SUPP_ADD_SECRET_REQ_FILE: &str = "supp_add_secret_req_ver";
 //Path for Supported Attestation Request Version
 const SUPP_ATTEST_REQ_VER_FILE: &str = "supp_att_req_hdr_ver";
 
+//Path for Supported plaintext control flag
+const SUPP_SE_HDR_PCF_FILE: &str = "supp_se_hdr_pcf";
+const SUPP_SE_HDR_PCF_DESC_FILE: &str = "supp_se_hdr_pcf_value.txt";
+
+
 
 
 /// Simple CLI for pvinfo
@@ -72,7 +77,8 @@ struct Cli {
     #[arg(long)]
     supported_attestation_request_versions: bool,
 
-
+    #[arg(long)]
+    supported_plaintext_control_flags: bool,
 
 }
 
@@ -133,7 +139,13 @@ fn main() {
     any = true;
     }
 
-
+    if args.supported_plaintext_control_flags {
+     handle_supported_plaintext_control_flags(
+        &Path::new(UV_FOLDER).join("query"),
+        Path::new(PVINFO_SRC),
+    );
+    any = true;
+    }
 
     if !any {
         show_everything();
@@ -284,7 +296,6 @@ fn show_everything() {
         Path::new(PVINFO_SRC),
     );
 
-    
     handle_feature_indications(
         &Path::new(UV_FOLDER).join("query"),
         Path::new(PVINFO_SRC),
@@ -302,6 +313,10 @@ fn show_everything() {
         &Path::new(UV_FOLDER).join("query"),
     );
 
+    handle_supported_plaintext_control_flags(
+        &Path::new(UV_FOLDER).join("query"),
+        Path::new(PVINFO_SRC),
+    );
 
 }
 
@@ -433,3 +448,14 @@ fn handle_supported_attestation_request_versions(query_dir: &Path) {
     }
 }
 
+/*==================== Supported Plaintext Control Flags ====================*/
+fn handle_supported_plaintext_control_flags(query_dir: &Path, src_dir: &Path) {
+    process_bitmask(
+        query_dir,
+        src_dir,
+        SUPP_SE_HDR_PCF_FILE,
+        SUPP_SE_HDR_PCF_DESC_FILE,
+        &[],  
+        "Supported Plaintext Control Flags: ",
+    );
+}
