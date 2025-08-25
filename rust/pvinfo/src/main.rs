@@ -36,6 +36,9 @@ const FEATURE_TEXT_FILE: &str = "feature_indications_value.txt";
 // Path for supported plaintext add secret flags
 const SUPP_ADD_SECRET_PCF_FILE: &str = "supp_add_secret_pcf";
 
+// Path for supported add secret request versions
+const SUPP_ADD_SECRET_REQ_FILE: &str = "supp_add_secret_req_ver";
+
 
 /// Simple CLI for pvinfo
 #[derive(Parser, Debug)]
@@ -56,6 +59,11 @@ struct Cli {
     /// Show Supported Plaintext Add Secret Flags
     #[arg(long)]
     supported_plaintext_add_secret_flags: bool,
+
+    /// Show Supported Add Secret Request Versions
+    #[arg(long)]
+    supported_add_secret_request_versions: bool,
+
 
 }
 
@@ -101,6 +109,14 @@ fn main() {
     );
     any = true;
     }
+
+   if args.supported_add_secret_request_versions {
+    show_supported_add_secret_req_versions(
+        &Path::new(UV_FOLDER).join("query"),
+    );
+    any = true;
+    }
+
 
     if !any {
         show_everything();
@@ -261,6 +277,11 @@ fn show_everything() {
         &Path::new(UV_FOLDER).join("query"),
     );
 
+    show_supported_add_secret_req_versions(
+       &Path::new(UV_FOLDER).join("query"),
+    );
+
+
 }
 
 /*==================== Feature indications ====================*/
@@ -310,6 +331,53 @@ fn handle_supported_plaintext_add_secret_flags(query_dir: &Path) {
     if !any {
         println!("no active flags");
     }
+}
+
+
+/*==================== Supported Add Secret Request Versions ====================*/
+
+/// CLI: `pvinfo --supported-add-secret-request-versions`
+///
+/// Reads the `supp_add_secret_req_ver` file and prints supported versions.
+/// Each active bit means:
+/// - Bit 0 → version 0x100
+/// - Bit 1 → version 0x200
+/// - ...
+/// - Bit 63 → version 0x4000
+fn show_supported_add_secret_req_versions(query_dir: &Path) {
+    let file_path = query_dir.join(SUPP_ADD_SECRET_REQ_FILE);
+    let mask = match read_hex_mask(&file_path) {
+        Some(m) => m,
+        None => {
+            println!("Supported Add Secret Request Versions file not found.");
+            return;
+        }
+    };
+
+    println!("\nSupported Add Secret Request Versions:");
+    let versions = extract_supported_versions(mask);
+
+    if versions.is_empty() {
+        println!("no supported versions");
+    } else {
+        for v in versions {
+            println!("{}", v);
+        }
+    }
+}
+
+/// Helper: Convert a hex bitmask into a list of supported versions.
+fn extract_supported_versions(mask: u64) -> Vec<String> {
+    let mut supported = Vec::new();
+
+    for bit in 0..64 {
+        if (mask & (1u64 << bit)) != 0 {
+            let version = (bit + 1) * 0x100;
+            supported.push(format!("version {:x} hex is supported", version));
+        }
+    }
+
+    supported
 }
 
 
