@@ -31,6 +31,17 @@ const SUPP_SE_HDR_VER_FILE: &str = "supp_se_hdr_ver";
 const SUPP_ATT_PFLAGS_FILE: &str = "supp_att_pflags";
 const SUPP_ATT_PFLAGS_DESC_FILE: &str = "supp_att_pflags_value.txt";
 
+const SUPP_SECRET_TYPES_FILE: &str = "supp_secret_types";
+const SUPP_SECRET_TYPES_DESC_FILE: &str = "supp_secret_types_value.txt";
+
+const MAX_ADDRESS_FILE: &str = "max_address";
+const MAX_ASSOC_SECRETS_FILE: &str = "max_assoc_secrets";
+const MAX_CPUS_FILE: &str = "max_cpus";
+const MAX_GUESTS_FILE: &str = "max_guests";
+const MAX_RETR_SECRETS_FILE: &str = "max_retr_secrets";
+const MAX_SECRETS_FILE: &str = "max_secrets";
+
+
 /// CLI
 #[derive(Parser, Debug)]
 #[command(author, version, about = "Protected Virtualization info")]
@@ -44,6 +55,9 @@ struct Cli {
     #[arg(long)] supported_plaintext_control_flags: bool,
     #[arg(long)] supported_se_header_versions: bool,
     #[arg(long)] supported_plaintext_attestation_flags: bool,
+    #[arg(long)] supported_secret_types: bool,
+    #[arg(long)] limits: bool,
+
 }
 
 fn main() {
@@ -103,6 +117,16 @@ fn main() {
         any = true;
     }
 
+    if args.supported_secret_types {
+       handle_supported_secret_types();
+       any = true;
+    }
+
+    if args.limits {
+        handle_limits();
+        any = true;
+    }
+
     if !any {
         show_everything();
     }
@@ -131,6 +155,14 @@ fn read_hex_mask(path: &Path) -> Option<u64> {
     let hex_str = first_line.trim_start_matches("0x");
     u64::from_str_radix(hex_str, 16).ok()
 }
+
+/// Reads a decimal integer from a file and returns it as u64.
+fn read_integer(path: &Path) -> Option<u64> {
+    let content = fs::read_to_string(path).ok()?;
+    let first_line = content.lines().find(|l| !l.trim().is_empty())?.trim();
+    first_line.parse::<u64>().ok()
+}
+
 
 /// For masks that have description files
 fn print_bitmask_with_desc(mask: u64, desc_file: &Path, reserved_bits: &[usize], heading: &str) {
@@ -202,13 +234,21 @@ fn determine_se_mode(base_dir: &Path) {
 /* ========== Handlers ========== */
 fn handle_facilities() {
     if let Some(mask) = read_hex_mask(&Path::new(UV_QUERY_DIR).join(FACILITIES_FILE)) {
-        print_bitmask_with_desc(mask, &Path::new(PVINFO_SRC).join(FACILITIES_DESC_FILE), &[10], "Facilities: Installed Ultravisor Calls");
+        print_bitmask_with_desc(
+            mask, 
+            &Path::new(PVINFO_SRC).join(FACILITIES_DESC_FILE), 
+            &[10], 
+            "Facilities: Installed Ultravisor Calls");
     }
 }
 
 fn handle_feature_indications() {
     if let Some(mask) = read_hex_mask(&Path::new(UV_QUERY_DIR).join(FEATURE_BITS_FILE)) {
-        print_bitmask_with_desc(mask, &Path::new(PVINFO_SRC).join(FEATURE_TEXT_FILE), &[0, 2, 3], "Feature Indications: Ultravisor Features");
+        print_bitmask_with_desc(
+            mask, 
+            &Path::new(PVINFO_SRC).join(FEATURE_TEXT_FILE), 
+            &[0, 2, 3], 
+            "Feature Indications: Ultravisor Features");
     }
 }
 
@@ -225,33 +265,81 @@ fn handle_supported_plaintext_add_secret_flags() {
 
 fn handle_supported_add_secret_req_versions() {
     if let Some(mask) = read_hex_mask(&Path::new(UV_QUERY_DIR).join(SUPP_ADD_SECRET_REQ_FILE)) {
-        print_version_mask(mask, "Supported Add Secret Request Versions:");
+        print_version_mask(
+            mask, 
+            "Supported Add Secret Request Versions:");
     }
 }
 
 fn handle_supported_attestation_request_versions() {
     if let Some(mask) = read_hex_mask(&Path::new(UV_QUERY_DIR).join(SUPP_ATTEST_REQ_VER_FILE)) {
-        print_version_mask(mask, "Supported Attestation Request Versions:");
+        print_version_mask(
+            mask, 
+            "Supported Attestation Request Versions:");
     }
 }
 
 fn handle_supported_plaintext_control_flags() {
     if let Some(mask) = read_hex_mask(&Path::new(UV_QUERY_DIR).join(SUPP_SE_HDR_PCF_FILE)) {
-        print_bitmask_with_desc(mask, &Path::new(PVINFO_SRC).join(SUPP_SE_HDR_PCF_DESC_FILE), &[], "Supported Plaintext Control Flags:");
+        print_bitmask_with_desc(
+            mask, 
+            &Path::new(PVINFO_SRC).join(SUPP_SE_HDR_PCF_DESC_FILE), 
+            &[], 
+            "Supported Plaintext Control Flags:");
     }
 }
 
 fn handle_supported_se_header_versions() {
     if let Some(mask) = read_hex_mask(&Path::new(UV_QUERY_DIR).join(SUPP_SE_HDR_VER_FILE)) {
-        print_version_mask(mask, "Supported SE Header Versions:");
+        print_version_mask(
+            mask, 
+            "Supported SE Header Versions:");
     }
 }
 
 fn handle_supported_plaintext_attestation_flags() {
     if let Some(mask) = read_hex_mask(&Path::new(UV_QUERY_DIR).join(SUPP_ATT_PFLAGS_FILE)) {
-        print_bitmask_with_desc(mask, &Path::new(PVINFO_SRC).join(SUPP_ATT_PFLAGS_DESC_FILE), &[], "Supported Plaintext Attestation Flags:");
+        print_bitmask_with_desc(
+            mask, 
+            &Path::new(PVINFO_SRC).join(SUPP_ATT_PFLAGS_DESC_FILE), 
+            &[], 
+            "Supported Plaintext Attestation Flags:");
     }
 }
+
+fn handle_supported_secret_types() {
+    if let Some(mask) = read_hex_mask(&Path::new(UV_QUERY_DIR).join(SUPP_SECRET_TYPES_FILE)) {
+        print_bitmask_with_desc(
+            mask,
+            &Path::new(PVINFO_SRC).join(SUPP_SECRET_TYPES_DESC_FILE),
+            &[],
+            "Supported Secret Types:",
+        );
+    }
+}
+
+/* ========== Limits Handling ========== */
+
+fn handle_limits() {
+    println!("\nLimits:");
+
+    let limits = [
+        (MAX_ADDRESS_FILE, "Maximal Address for a SE-Guest"),
+        (MAX_ASSOC_SECRETS_FILE, "Maximal number of associated secrets"),
+        (MAX_CPUS_FILE, "Maximal number of CPUs in one SE-Guest"),
+        (MAX_GUESTS_FILE, "Maximal number of SE-Guests"),
+        (MAX_RETR_SECRETS_FILE, "Maximal number of retrievable secrets"),
+        (MAX_SECRETS_FILE, "Maximal number of secrets in the system"),
+    ];
+
+    for (file, desc) in limits {
+        let path = Path::new(UV_QUERY_DIR).join(file);
+        if let Some(val) = read_integer(&path) {
+            println!("{} {}", desc, val);
+        }
+    }
+}
+
 
 /* ========== Show Everything ========== */
 fn show_everything() {
@@ -266,4 +354,7 @@ fn show_everything() {
     handle_supported_plaintext_control_flags();
     handle_supported_se_header_versions();
     handle_supported_plaintext_attestation_flags();
+    handle_supported_secret_types();
+    handle_limits();
+
 }
