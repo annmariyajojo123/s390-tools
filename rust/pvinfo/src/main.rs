@@ -4,6 +4,7 @@ use clap::{Parser, CommandFactory};
 use std::fs;
 use std::path::Path;
 use std::process;
+use clap::Subcommand;
 
 // Path to the UV directory 
 // Path to the uv/query directory
@@ -58,78 +59,117 @@ struct Cli {
     #[arg(long)] supported_secret_types: bool,
     #[arg(long)] limits: bool,
 
+    #[command(subcommand)]
+    command: Option<Commands>,   // NEW: handle "supported-flags"
+}
+
+#[derive(Subcommand, Debug)]
+enum Commands {
+    SupportedFlags {
+        #[arg(long)]
+        secret: bool,
+
+         #[arg(long)]
+        attestation: bool, 
+
+        #[arg(long)]
+        header: bool,
+    },
 }
 
 fn main() {
     let raw_args: Vec<String> = std::env::args().collect();
     if raw_args.len() == 2 && raw_args[1] == "--" {
         Cli::command().print_help().unwrap();
-        std::process::exit(1);
+        process::exit(1);
     }
 
     let args = Cli::parse();
     verify_uv_folder();
-
     let mut any = false;
 
-    if args.se_status {
-        determine_se_mode(Path::new(UV_FOLDER));
-        any = true;
-    }
+    match &args.command {
+    Some(Commands::SupportedFlags { secret, attestation, header }) => {
+        if *secret {
+            handle_supported_secret_flags_group();
+        }
+        if *attestation {
+            handle_supported_attestation_flags_group();
+        }
+        if *header {
+            handle_supported_header_flags_group();
+        }
 
-    if args.facilities {
-        handle_facilities();
-        any = true;
-    }
+        // If no flags were provided, print *all three groups*
+        if !*secret && !*attestation && !*header {
+            handle_supported_secret_flags_group();
+            handle_supported_attestation_flags_group();
+            handle_supported_header_flags_group();
+        }
 
-    if args.feature_indications {
-        handle_feature_indications();
-        any = true;
+        return; // skip normal flow
     }
+        None => {
+            if args.se_status {
+                determine_se_mode(Path::new(UV_FOLDER));
+                any = true;
+            }
 
-    if args.supported_plaintext_add_secret_flags {
-        handle_supported_plaintext_add_secret_flags();
-        any = true;
-    }
+            if args.facilities {
+                handle_facilities();
+                any = true;
+            }
 
-    if args.supported_add_secret_request_versions {
-        handle_supported_add_secret_req_versions();
-        any = true;
-    }
+            if args.feature_indications {
+                handle_feature_indications();
+                any = true;
+            }
 
-    if args.supported_attestation_request_versions {
-        handle_supported_attestation_request_versions();
-        any = true;
-    }
+            if args.supported_plaintext_add_secret_flags {
+                handle_supported_plaintext_add_secret_flags();
+                any = true;
+            }
 
-    if args.supported_plaintext_control_flags {
-        handle_supported_plaintext_control_flags();
-        any = true;
-    }
+            if args.supported_add_secret_request_versions {
+                handle_supported_add_secret_req_versions();
+                any = true;
+            }
 
-    if args.supported_se_header_versions {
-        handle_supported_se_header_versions();
-        any = true;
-    }
+            if args.supported_attestation_request_versions {
+                handle_supported_attestation_request_versions();
+                any = true;
+            }
 
-    if args.supported_plaintext_attestation_flags {
-        handle_supported_plaintext_attestation_flags();
-        any = true;
-    }
+            if args.supported_plaintext_control_flags {
+                handle_supported_plaintext_control_flags();
+                any = true;
+            }
 
-    if args.supported_secret_types {
-       handle_supported_secret_types();
-       any = true;
-    }
+            if args.supported_se_header_versions {
+                handle_supported_se_header_versions();
+                any = true;
+            }
 
-    if args.limits {
-        handle_limits();
-        any = true;
-    }
+            if args.supported_plaintext_attestation_flags {
+                handle_supported_plaintext_attestation_flags();
+                any = true;
+            }
 
-    if !any {
-        show_everything();
-    }
+            if args.supported_secret_types {
+                handle_supported_secret_types();
+                any = true;
+            }
+
+            if args.limits {
+                handle_limits();
+                any = true;
+            }
+
+            if !any {
+                show_everything();
+            }
+        } // <-- this closes the `None => { ... }` block
+    } // <-- this closes the `match`
 }
 
 /* ========== Shared Helpers ========== */
@@ -166,7 +206,7 @@ fn read_integer(path: &Path) -> Option<u64> {
 
 /// For masks that have description files
 fn print_bitmask_with_desc(mask: u64, desc_file: &Path, reserved_bits: &[usize], heading: &str) {
-    println!("\n{}", heading);
+    println!("{}", heading);
     let content = fs::read_to_string(desc_file).unwrap_or_default();
     let lines: Vec<&str> = content.lines().collect();
     let mut any = false;
@@ -201,7 +241,7 @@ fn print_bitmask_with_desc(mask: u64, desc_file: &Path, reserved_bits: &[usize],
 
 /// For masks that represent supported versions
 fn print_version_mask(mask: u64, heading: &str) {
-    println!("\n{}", heading);
+    println!("{}", heading);
     let mut any = false;
 
     for bit in 0..64 {
@@ -254,7 +294,7 @@ fn handle_feature_indications() {
 
 fn handle_supported_plaintext_add_secret_flags() {
     if let Some(mask) = read_hex_mask(&Path::new(UV_QUERY_DIR).join(SUPP_ADD_SECRET_PCF_FILE)) {
-        println!("\nSupported Plaintext Add Secret Flags:");
+        println!("Supported Plaintext Add Secret Flags:");
         if (mask & (1u64 << 0)) != 0 {
             println!("Disable dumping");
         } else {
@@ -321,7 +361,7 @@ fn handle_supported_secret_types() {
 /* ========== Limits Handling ========== */
 
 fn handle_limits() {
-    println!("\nLimits:");
+    println!("Limits:");
 
     let limits = [
         (MAX_ADDRESS_FILE, "Maximal Address for a SE-Guest"),
@@ -339,6 +379,25 @@ fn handle_limits() {
         }
     }
 }
+
+/// Grouping for subcommands
+
+fn handle_supported_secret_flags_group() {
+    handle_supported_secret_types();
+    handle_supported_add_secret_req_versions();
+    handle_supported_plaintext_add_secret_flags();
+}
+
+fn handle_supported_attestation_flags_group() {
+    handle_supported_plaintext_attestation_flags();
+    handle_supported_attestation_request_versions();
+}
+
+fn handle_supported_header_flags_group() {
+    handle_supported_se_header_versions();
+    handle_supported_plaintext_control_flags();
+}
+
 
 
 /* ========== Show Everything ========== */
