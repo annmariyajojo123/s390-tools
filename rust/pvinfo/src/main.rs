@@ -1,7 +1,7 @@
 //! pvinfo tool implementation
 
 //command-line argument parsing library
-use clap::{Parser, CommandFactory, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 
 // YAML serialization
 use serde::Serialize;
@@ -19,8 +19,7 @@ use std::process;
 Base Directories
 ───────────────*/
 //Constants point to where data files are stored in the project
-const UV_QUERY_DIR: &str =
-    "/home/annmariyajojo/Documents/s390_tools_learning/s390-tools/uv/query";
+const UV_QUERY_DIR: &str = "/home/annmariyajojo/Documents/s390_tools_learning/s390-tools/uv/query";
 
 const UV_FOLDER: &str = "/home/annmariyajojo/Documents/s390_tools_learning/s390-tools/uv";
 const PVINFO_SRC: &str =
@@ -96,17 +95,28 @@ CLI
 #[derive(Parser, Debug)]
 #[command(author, version, about = "Protected Virtualization info")]
 struct Cli {
-    #[arg(long)] se_status: bool,
-    #[arg(long)] facilities: bool,
-    #[arg(long)] feature_indications: bool,
-    #[arg(long)] supported_plaintext_add_secret_flags: bool,
-    #[arg(long)] supported_add_secret_request_versions: bool,
-    #[arg(long)] supported_attestation_request_versions: bool,
-    #[arg(long)] supported_plaintext_control_flags: bool,
-    #[arg(long)] supported_se_header_versions: bool,
-    #[arg(long)] supported_plaintext_attestation_flags: bool,
-    #[arg(long)] supported_secret_types: bool,
-    #[arg(long)] limits: bool,
+    #[arg(long)]
+    se_status: bool,
+    #[arg(long)]
+    facilities: bool,
+    #[arg(long)]
+    feature_indications: bool,
+    #[arg(long)]
+    supported_plaintext_add_secret_flags: bool,
+    #[arg(long)]
+    supported_add_secret_request_versions: bool,
+    #[arg(long)]
+    supported_attestation_request_versions: bool,
+    #[arg(long)]
+    supported_plaintext_control_flags: bool,
+    #[arg(long)]
+    supported_se_header_versions: bool,
+    #[arg(long)]
+    supported_plaintext_attestation_flags: bool,
+    #[arg(long)]
+    supported_secret_types: bool,
+    #[arg(long)]
+    limits: bool,
 
     #[arg(long, default_value = "text")]
     format: String, // "text" or "yaml"
@@ -135,7 +145,6 @@ enum Commands {
 Main
 ────────────*/
 fn main() {
-
     // Special case: if user runs pvinfo --, just show help
     let raw_args: Vec<String> = std::env::args().collect();
     if raw_args.len() == 2 && raw_args[1] == "--" {
@@ -146,7 +155,7 @@ fn main() {
     //Parse CLI args into args
     let args = Cli::parse();
 
-    // Verify UV folder exists or not 
+    // Verify UV folder exists or not
     verify_uv_folder();
     let mut any = false;
 
@@ -159,26 +168,62 @@ fn main() {
         }) => {
             if *secret {
                 print_list("Supported Secret Types:", collect_secret_types());
-                print_list("Supported Add Secret Request Versions:", collect_add_secret_req_versions());
-                print_list("Supported Plaintext Add Secret Flags:", collect_add_secret_flags());
+                print_list(
+                    "Supported Add Secret Request Versions:",
+                    collect_add_secret_req_versions(),
+                );
+                print_list(
+                    "Supported Plaintext Add Secret Flags:",
+                    collect_add_secret_flags(),
+                );
             }
             if *attestation {
-                print_list("Supported Plaintext Attestation Flags:", collect_attestation_flags());
-                print_list("Supported Attestation Request Versions:", collect_attestation_req_versions());
+                print_list(
+                    "Supported Plaintext Attestation Flags:",
+                    collect_attestation_flags(),
+                );
+                print_list(
+                    "Supported Attestation Request Versions:",
+                    collect_attestation_req_versions(),
+                );
             }
             if *header {
-                print_list("Supported SE Header Versions:", collect_se_header_versions());
-                print_list("Supported Plaintext Control Flags:", collect_plaintext_control_flags());
+                print_list(
+                    "Supported SE Header Versions:",
+                    collect_se_header_versions(),
+                );
+                print_list(
+                    "Supported Plaintext Control Flags:",
+                    collect_plaintext_control_flags(),
+                );
             }
             if !*secret && !*attestation && !*header {
                 // all three
                 print_list("Supported Secret Types:", collect_secret_types());
-                print_list("Supported Add Secret Request Versions:", collect_add_secret_req_versions());
-                print_list("Supported Plaintext Add Secret Flags:", collect_add_secret_flags());
-                print_list("Supported Plaintext Attestation Flags:", collect_attestation_flags());
-                print_list("Supported Attestation Request Versions:", collect_attestation_req_versions());
-                print_list("Supported SE Header Versions:", collect_se_header_versions());
-                print_list("Supported Plaintext Control Flags:", collect_plaintext_control_flags());
+                print_list(
+                    "Supported Add Secret Request Versions:",
+                    collect_add_secret_req_versions(),
+                );
+                print_list(
+                    "Supported Plaintext Add Secret Flags:",
+                    collect_add_secret_flags(),
+                );
+                print_list(
+                    "Supported Plaintext Attestation Flags:",
+                    collect_attestation_flags(),
+                );
+                print_list(
+                    "Supported Attestation Request Versions:",
+                    collect_attestation_req_versions(),
+                );
+                print_list(
+                    "Supported SE Header Versions:",
+                    collect_se_header_versions(),
+                );
+                print_list(
+                    "Supported Plaintext Control Flags:",
+                    collect_plaintext_control_flags(),
+                );
             }
             return;
         }
@@ -196,35 +241,59 @@ fn main() {
                 any = true;
             }
             if args.facilities {
-                print_list("Facilities: Installed Ultravisor Calls", collect_facilities());
+                print_list(
+                    "Facilities: Installed Ultravisor Calls",
+                    collect_facilities(),
+                );
                 any = true;
             }
             if args.feature_indications {
-                print_list("Feature Indications: Ultravisor Features", collect_feature_indications());
+                print_list(
+                    "Feature Indications: Ultravisor Features",
+                    collect_feature_indications(),
+                );
                 any = true;
             }
             if args.supported_plaintext_add_secret_flags {
-                print_list("Supported Plaintext Add Secret Flags:", collect_add_secret_flags());
+                print_list(
+                    "Supported Plaintext Add Secret Flags:",
+                    collect_add_secret_flags(),
+                );
                 any = true;
             }
             if args.supported_add_secret_request_versions {
-                print_list("Supported Add Secret Request Versions:", collect_add_secret_req_versions());
+                print_list(
+                    "Supported Add Secret Request Versions:",
+                    collect_add_secret_req_versions(),
+                );
                 any = true;
             }
             if args.supported_attestation_request_versions {
-                print_list("Supported Attestation Request Versions:", collect_attestation_req_versions());
+                print_list(
+                    "Supported Attestation Request Versions:",
+                    collect_attestation_req_versions(),
+                );
                 any = true;
             }
             if args.supported_plaintext_control_flags {
-                print_list("Supported Plaintext Control Flags:", collect_plaintext_control_flags());
+                print_list(
+                    "Supported Plaintext Control Flags:",
+                    collect_plaintext_control_flags(),
+                );
                 any = true;
             }
             if args.supported_se_header_versions {
-                print_list("Supported SE Header Versions:", collect_se_header_versions());
+                print_list(
+                    "Supported SE Header Versions:",
+                    collect_se_header_versions(),
+                );
                 any = true;
             }
             if args.supported_plaintext_attestation_flags {
-                print_list("Supported Plaintext Attestation Flags:", collect_attestation_flags());
+                print_list(
+                    "Supported Plaintext Attestation Flags:",
+                    collect_attestation_flags(),
+                );
                 any = true;
             }
             if args.supported_secret_types {
@@ -240,14 +309,38 @@ fn main() {
             if !any {
                 // default show all in text mode
                 print_list("se_status:", vec![collect_se_status()]);
-                print_list("\nFacilities: Installed Ultravisor Calls", collect_facilities());
-                print_list("\nFeature Indications: Ultravisor Features", collect_feature_indications());
-                print_list("\nSupported Plaintext Add Secret Flags:", collect_add_secret_flags());
-                print_list("\nSupported Add Secret Request Versions:", collect_add_secret_req_versions());
-                print_list("\nSupported Attestation Request Versions:", collect_attestation_req_versions());
-                print_list("\nSupported Plaintext Control Flags:", collect_plaintext_control_flags());
-                print_list("\nSupported SE Header Versions:", collect_se_header_versions());
-                print_list("\nSupported Plaintext Attestation Flags:", collect_attestation_flags());
+                print_list(
+                    "\nFacilities: Installed Ultravisor Calls",
+                    collect_facilities(),
+                );
+                print_list(
+                    "\nFeature Indications: Ultravisor Features",
+                    collect_feature_indications(),
+                );
+                print_list(
+                    "\nSupported Plaintext Add Secret Flags:",
+                    collect_add_secret_flags(),
+                );
+                print_list(
+                    "\nSupported Add Secret Request Versions:",
+                    collect_add_secret_req_versions(),
+                );
+                print_list(
+                    "\nSupported Attestation Request Versions:",
+                    collect_attestation_req_versions(),
+                );
+                print_list(
+                    "\nSupported Plaintext Control Flags:",
+                    collect_plaintext_control_flags(),
+                );
+                print_list(
+                    "\nSupported SE Header Versions:",
+                    collect_se_header_versions(),
+                );
+                print_list(
+                    "\nSupported Plaintext Attestation Flags:",
+                    collect_attestation_flags(),
+                );
                 print_list("\nSupported Secret Types:", collect_secret_types());
                 println!();
                 print_limits(collect_limits());
@@ -275,14 +368,21 @@ fn collect_se_status() -> String {
 
 fn collect_facilities() -> Vec<String> {
     read_hex_mask(&Path::new(UV_QUERY_DIR).join(FACILITIES_FILE))
-        .map(|m| collect_bitmask_with_desc(m, &Path::new(PVINFO_SRC).join(FACILITIES_DESC_FILE), &[10]))
+        .map(|m| {
+            collect_bitmask_with_desc(m, &Path::new(PVINFO_SRC).join(FACILITIES_DESC_FILE), &[10])
+        })
         .unwrap_or_else(|| vec!["no active entries".into()])
 }
 
-
 fn collect_feature_indications() -> Vec<String> {
     read_hex_mask(&Path::new(UV_QUERY_DIR).join(FEATURE_BITS_FILE))
-        .map(|m| collect_bitmask_with_desc(m, &Path::new(PVINFO_SRC).join(FEATURE_TEXT_FILE), &[0, 2, 3]))
+        .map(|m| {
+            collect_bitmask_with_desc(
+                m,
+                &Path::new(PVINFO_SRC).join(FEATURE_TEXT_FILE),
+                &[0, 2, 3],
+            )
+        })
         .unwrap_or_else(|| vec!["no active entries".into()])
 }
 
@@ -315,7 +415,13 @@ fn collect_attestation_req_versions() -> Vec<String> {
 
 fn collect_plaintext_control_flags() -> Vec<String> {
     read_hex_mask(&Path::new(UV_QUERY_DIR).join(SUPP_SE_HDR_PCF_FILE))
-        .map(|m| collect_bitmask_with_desc(m, &Path::new(PVINFO_SRC).join(SUPP_SE_HDR_PCF_DESC_FILE), &[]))
+        .map(|m| {
+            collect_bitmask_with_desc(
+                m,
+                &Path::new(PVINFO_SRC).join(SUPP_SE_HDR_PCF_DESC_FILE),
+                &[],
+            )
+        })
         .unwrap_or_else(|| vec!["no active entries".into()])
 }
 
@@ -327,24 +433,45 @@ fn collect_se_header_versions() -> Vec<String> {
 
 fn collect_attestation_flags() -> Vec<String> {
     read_hex_mask(&Path::new(UV_QUERY_DIR).join(SUPP_ATT_PFLAGS_FILE))
-        .map(|m| collect_bitmask_with_desc(m, &Path::new(PVINFO_SRC).join(SUPP_ATT_PFLAGS_DESC_FILE), &[]))
+        .map(|m| {
+            collect_bitmask_with_desc(
+                m,
+                &Path::new(PVINFO_SRC).join(SUPP_ATT_PFLAGS_DESC_FILE),
+                &[],
+            )
+        })
         .unwrap_or_else(|| vec!["no active entries".into()])
 }
 
 fn collect_secret_types() -> Vec<String> {
     read_hex_mask(&Path::new(UV_QUERY_DIR).join(SUPP_SECRET_TYPES_FILE))
-        .map(|m| collect_bitmask_with_desc(m, &Path::new(PVINFO_SRC).join(SUPP_SECRET_TYPES_DESC_FILE), &[]))
+        .map(|m| {
+            collect_bitmask_with_desc(
+                m,
+                &Path::new(PVINFO_SRC).join(SUPP_SECRET_TYPES_DESC_FILE),
+                &[],
+            )
+        })
         .unwrap_or_else(|| vec!["no active entries".into()])
 }
 
 fn collect_limits() -> Limits {
     Limits {
         maximal_address: read_integer(&Path::new(UV_QUERY_DIR).join(MAX_ADDRESS_FILE)).unwrap_or(0),
-        maximal_number_of_associated_secrets: read_integer(&Path::new(UV_QUERY_DIR).join(MAX_ASSOC_SECRETS_FILE)).unwrap_or(0),
-        maximal_number_of_cpus: read_integer(&Path::new(UV_QUERY_DIR).join(MAX_CPUS_FILE)).unwrap_or(0),
-        maximal_number_of_se_guests: read_integer(&Path::new(UV_QUERY_DIR).join(MAX_GUESTS_FILE)).unwrap_or(0),
-        maximal_number_of_retrievable_secrets: read_integer(&Path::new(UV_QUERY_DIR).join(MAX_RETR_SECRETS_FILE)).unwrap_or(0),
-        maximal_number_of_secrets: read_integer(&Path::new(UV_QUERY_DIR).join(MAX_SECRETS_FILE)).unwrap_or(0),
+        maximal_number_of_associated_secrets: read_integer(
+            &Path::new(UV_QUERY_DIR).join(MAX_ASSOC_SECRETS_FILE),
+        )
+        .unwrap_or(0),
+        maximal_number_of_cpus: read_integer(&Path::new(UV_QUERY_DIR).join(MAX_CPUS_FILE))
+            .unwrap_or(0),
+        maximal_number_of_se_guests: read_integer(&Path::new(UV_QUERY_DIR).join(MAX_GUESTS_FILE))
+            .unwrap_or(0),
+        maximal_number_of_retrievable_secrets: read_integer(
+            &Path::new(UV_QUERY_DIR).join(MAX_RETR_SECRETS_FILE),
+        )
+        .unwrap_or(0),
+        maximal_number_of_secrets: read_integer(&Path::new(UV_QUERY_DIR).join(MAX_SECRETS_FILE))
+            .unwrap_or(0),
     }
 }
 
@@ -405,9 +532,11 @@ fn collect_bitmask_with_desc(mask: u64, desc_file: &Path, reserved_bits: &[usize
 
         if (mask & (1u64 << bit_position)) != 0 {
             if reserved_bits.contains(&line_index) {
-                out.push(format!("Confidential - report as reserved Bit-{}", line_index));
+                out.push(format!(
+                    "Confidential - report as reserved Bit-{}",
+                    line_index
+                ));
             } else if line.trim() == "Reserved" {
-        
                 out.push(format!("Reserved Bit-{}", line_index));
             } else {
                 out.push(line.to_string());
@@ -449,9 +578,24 @@ fn print_list(title: &str, items: Vec<String>) {
 fn print_limits(lim: Limits) {
     println!("Limits:");
     println!("Maximal Address for a SE-Guest {}", lim.maximal_address);
-    println!("Maximal number of associated secrets {}", lim.maximal_number_of_associated_secrets);
-    println!("Maximal number of CPUs in one SE-Guest {}", lim.maximal_number_of_cpus);
-    println!("Maximal number of SE-Guests {}", lim.maximal_number_of_se_guests);
-    println!("Maximal number of retrievable secrets {}", lim.maximal_number_of_retrievable_secrets);
-    println!("Maximal number of secrets in the system {}", lim.maximal_number_of_secrets);
+    println!(
+        "Maximal number of associated secrets {}",
+        lim.maximal_number_of_associated_secrets
+    );
+    println!(
+        "Maximal number of CPUs in one SE-Guest {}",
+        lim.maximal_number_of_cpus
+    );
+    println!(
+        "Maximal number of SE-Guests {}",
+        lim.maximal_number_of_se_guests
+    );
+    println!(
+        "Maximal number of retrievable secrets {}",
+        lim.maximal_number_of_retrievable_secrets
+    );
+    println!(
+        "Maximal number of secrets in the system {}",
+        lim.maximal_number_of_secrets
+    );
 }
